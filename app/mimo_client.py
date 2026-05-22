@@ -1,4 +1,4 @@
-"""Mimo API客户端"""
+"""MiMo API client"""
 
 import json
 import uuid
@@ -8,7 +8,7 @@ from .config import MimoAccount
 
 
 class MimoClient:
-    """Mimo API客户端"""
+    """MiMo API client"""
 
     API_URL = "https://aistudio.xiaomimimo.com/open-apis/bot/chat"
     TIMEOUT = 120.0
@@ -17,7 +17,7 @@ class MimoClient:
         self.account = account
 
     def _create_headers(self) -> dict:
-        """创建请求头"""
+        """Create request headers"""
         return {
             "Accept": "*/*",
             "Content-Type": "application/json",
@@ -28,7 +28,7 @@ class MimoClient:
         }
 
     def _create_cookies(self) -> dict:
-        """创建Cookies"""
+        """Create cookies"""
         return {
             "serviceToken": self.account.service_token,
             "userId": self.account.user_id,
@@ -36,7 +36,7 @@ class MimoClient:
         }
 
     def _create_request_body(self, query: str, thinking: bool) -> dict:
-        """创建请求体"""
+        """Create request body"""
         return {
             "msgId": uuid.uuid4().hex[:32],
             "conversationId": uuid.uuid4().hex[:32],
@@ -46,14 +46,14 @@ class MimoClient:
                 "temperature": 0.8,
                 "topP": 0.95,
                 "webSearchStatus": "disabled",
-                "model": "mimo-v2-flash-studio"
+                "model": "mimo-v2.5-pro"
             },
             "multiMedias": []
         }
 
     async def call_api(self, query: str, thinking: bool = False) -> Tuple[str, str, dict]:
         """
-        调用Mimo API（非流式）
+        Call MiMo API (non-streaming).
 
         Returns:
             (content, think_content, usage)
@@ -73,7 +73,7 @@ class MimoClient:
             result = []
             usage = {"promptTokens": 0, "completionTokens": 0}
 
-            # 解析SSE流
+            # Parse SSE stream
             async for line in response.aiter_lines():
                 if line.startswith("data:"):
                     data = line[5:].strip()
@@ -81,7 +81,7 @@ class MimoClient:
                         sse_data = json.loads(data)
                         if sse_data.get("type") == "text":
                             result.append(sse_data.get("content", ""))
-                        # 提取usage信息
+                        # Extract usage info
                         if "promptTokens" in sse_data:
                             usage = {
                                 "promptTokens": sse_data.get("promptTokens", 0),
@@ -90,7 +90,7 @@ class MimoClient:
                     except json.JSONDecodeError:
                         continue
 
-            # 合并结果并解析<think>标签
+            # Merge results and parse<think>tags
             full_text = "".join(result).replace("\x00", "")
             content, think_content = self._parse_think_tags(full_text)
 
@@ -98,10 +98,10 @@ class MimoClient:
 
     async def stream_api(self, query: str, thinking: bool = False) -> AsyncIterator[dict]:
         """
-        调用Mimo API（流式）
+        Call MiMo API (streaming).
 
         Yields:
-            SSE数据字典
+            SSE data dicts
         """
         body = self._create_request_body(query, thinking)
 
@@ -129,7 +129,7 @@ class MimoClient:
     @staticmethod
     def _parse_think_tags(text: str) -> Tuple[str, str]:
         """
-        解析<think>标签
+        Parse<think>tags.
 
         Returns:
             (content, think_content)

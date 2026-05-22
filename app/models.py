@@ -1,34 +1,34 @@
-"""OpenAI API 数据模型"""
+"""OpenAI API data models"""
 
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 
 
 class OpenAIMessage(BaseModel):
-    """OpenAI消息"""
+    """OpenAI message"""
     role: str
     content: str
 
 
 class OpenAIRequest(BaseModel):
-    """OpenAI请求"""
+    """OpenAI request"""
     model: str
     messages: List[OpenAIMessage]
     stream: bool = False
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
-    reasoning_effort: Optional[str] = Field(None, description="深度思考等级: low/medium/high")
+    reasoning_effort: Optional[str] = Field(None, description="Reasoning effort level: low/medium/high")
 
 
 class OpenAIDelta(BaseModel):
-    """OpenAI流式响应增量"""
+    """OpenAI streaming response delta"""
     role: Optional[str] = None
     content: Optional[str] = None
-    reasoning: Optional[str] = Field(None, description="深度思考内容")
+    reasoning: Optional[str] = Field(None, description="Reasoning content")
 
 
 class OpenAIChoice(BaseModel):
-    """OpenAI选择项"""
+    """OpenAI choice"""
     index: int
     message: Optional[OpenAIMessage] = None
     delta: Optional[OpenAIDelta] = None
@@ -36,14 +36,14 @@ class OpenAIChoice(BaseModel):
 
 
 class OpenAIUsage(BaseModel):
-    """OpenAI使用统计"""
+    """OpenAI usage stats"""
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
 
 
 class OpenAIResponse(BaseModel):
-    """OpenAI响应"""
+    """OpenAI response"""
     id: str
     object: str
     created: int
@@ -53,12 +53,12 @@ class OpenAIResponse(BaseModel):
 
 
 class ParseCurlRequest(BaseModel):
-    """解析cURL请求"""
+    """Parse cURL request"""
     curl: str
 
 
 class TestAccountRequest(BaseModel):
-    """测试账号请求"""
+    """Test account request"""
     service_token: str
     user_id: str
     xiaomichatbot_ph: str

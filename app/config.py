@@ -1,4 +1,4 @@
-"""配置管理模块"""
+"""Configuration management"""
 
 import json
 import threading
@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict
 
 @dataclass
 class MimoAccount:
-    """Mimo账号配置"""
+    """MiMo account config"""
     service_token: str
     user_id: str
     xiaomichatbot_ph: str
@@ -20,7 +20,7 @@ class MimoAccount:
 
 @dataclass
 class Config:
-    """应用配置"""
+    """App config"""
     api_keys: str = "sk-default"
     mimo_accounts: List[MimoAccount] = None
 
@@ -36,7 +36,7 @@ class Config:
 
 
 class ConfigManager:
-    """配置管理器 - 线程安全"""
+    """Thread-safe config manager"""
 
     def __init__(self, config_file: str = "config.json"):
         self.config_file = Path(config_file)
@@ -46,7 +46,7 @@ class ConfigManager:
         self.load()
 
     def load(self):
-        """加载配置"""
+        """Load config"""
         if not self.config_file.exists():
             self.save()
             return
@@ -62,27 +62,27 @@ class ConfigManager:
                     mimo_accounts=accounts
                 )
         except Exception as e:
-            print(f"加载配置失败: {e}")
+            print(f"Failed to load config: {e}")
             self.config = Config()
             self.save()
 
     def save(self):
-        """保存配置"""
+        """Save config"""
         with self.lock:
             try:
                 with open(self.config_file, 'w', encoding='utf-8') as f:
                     json.dump(self.config.to_dict(), f, indent=2, ensure_ascii=False)
             except Exception as e:
-                print(f"保存配置失败: {e}")
+                print(f"Failed to save config: {e}")
 
     def validate_api_key(self, key: str) -> bool:
-        """验证API Key"""
+        """Validate API key"""
         with self.lock:
             keys = [k.strip() for k in self.config.api_keys.split(',')]
             return key in keys
 
     def get_next_account(self) -> Optional[MimoAccount]:
-        """获取下一个账号（轮询）"""
+        """Get next account (round-robin)"""
         with self.lock:
             if not self.config.mimo_accounts:
                 return None
@@ -91,7 +91,7 @@ class ConfigManager:
             return account
 
     def update_config(self, new_config: dict):
-        """更新配置"""
+        """Update config"""
         with self.lock:
             accounts = [
                 MimoAccount(**acc) for acc in new_config.get('mimo_accounts', [])
@@ -103,10 +103,10 @@ class ConfigManager:
             self.save()
 
     def get_config(self) -> dict:
-        """获取配置"""
+        """Get config"""
         with self.lock:
             return self.config.to_dict()
 
 
-# 全局配置管理器实例
+# Global config manager instance
 config_manager = ConfigManager()

@@ -1,4 +1,4 @@
-"""工具函数"""
+"""Utility functions"""
 
 import re
 from typing import Optional
@@ -7,13 +7,13 @@ from .config import MimoAccount
 
 def parse_curl(curl_command: str) -> Optional[MimoAccount]:
     """
-    解析cURL命令提取Mimo账号凭证
+    Parse cURL command to extract MiMo account credentials.
 
     Args:
-        curl_command: cURL命令字符串
+        curl_command: cURL command string
 
     Returns:
-        MimoAccount对象或None
+        MimoAccount object or None
     """
     account = {
         'service_token': '',
@@ -21,7 +21,7 @@ def parse_curl(curl_command: str) -> Optional[MimoAccount]:
         'xiaomichatbot_ph': ''
     }
 
-    # 提取cookies（支持多种格式）
+    # Extract cookies (supports multiple formats)
     cookie_match = re.search(r"(?:-b|--cookie)\s+'([^']+)'", curl_command)
     if not cookie_match:
         cookie_match = re.search(r'(?:-b|--cookie)\s+"([^"]+)"', curl_command)
@@ -34,22 +34,22 @@ def parse_curl(curl_command: str) -> Optional[MimoAccount]:
 
     cookies = cookie_match.group(1)
 
-    # 提取serviceToken
+    # Extract serviceToken
     service_token_match = re.search(r'serviceToken="([^"]+)"', cookies)
     if service_token_match:
         account['service_token'] = service_token_match.group(1)
 
-    # 提取userId
+    # Extract userId
     user_id_match = re.search(r'userId=(\d+)', cookies)
     if user_id_match:
         account['user_id'] = user_id_match.group(1)
 
-    # 提取xiaomichatbot_ph
+    # Extract xiaomichatbot_ph
     ph_match = re.search(r'xiaomichatbot_ph="([^"]+)"', cookies)
     if ph_match:
         account['xiaomichatbot_ph'] = ph_match.group(1)
 
-    # 验证必需字段
+    # Validate required fields
     if not account['service_token']:
         return None
 
@@ -58,43 +58,43 @@ def parse_curl(curl_command: str) -> Optional[MimoAccount]:
 
 def safe_utf8_len(text: str, max_len: int) -> int:
     """
-    安全的UTF-8字符串长度计算，避免在多字节字符中间截断
+    Safe UTF-8 string length calculation to avoid truncating multi-byte characters.
 
     Args:
-        text: 文本字符串
-        max_len: 最大长度
+        text: Input string
+        max_len: Maximum length
 
     Returns:
-        安全的截断长度
+        Safe truncation length
     """
     if max_len <= 0 or max_len >= len(text):
         return len(text)
 
-    # Python 3的字符串是Unicode，不需要特殊处理UTF-8边界
-    # 但为了与Go版本保持一致的逻辑，我们保留这个函数
+    # Python 3 strings are Unicode, no special UTF-8 boundary handling needed
+    # Kept for consistency with the Go version
     return max_len
 
 
 def build_query_from_messages(messages: list, max_messages: int = 10, max_content_len: int = 4000) -> str:
     """
-    从消息列表构建查询字符串
+    Build query string from message list.
 
     Args:
-        messages: 消息列表
-        max_messages: 最大消息数量
-        max_content_len: 单条消息最大长度
+        messages: List of messages
+        max_messages: Maximum number of messages
+        max_content_len: Maximum length per message
 
     Returns:
-        查询字符串
+        Query string
     """
-    # 只保留最后N条消息
+    # Keep only the last N messages
     if len(messages) > max_messages:
         messages = messages[-max_messages:]
 
     query_parts = []
     for msg in messages:
         content = msg.content
-        # 截断过长的内容
+        # Truncate overly long content
         if len(content) > max_content_len:
             content = content[:max_content_len] + "..."
         query_parts.append(f"{msg.role}: {content}")

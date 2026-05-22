@@ -1,4 +1,4 @@
-"""API路由"""
+"""API routes"""
 
 import time
 import uuid
@@ -18,11 +18,11 @@ router = APIRouter()
 
 
 def validate_api_key(authorization: Optional[str]) -> bool:
-    """验证API Key"""
+    """Validate API key"""
     if not authorization:
         return False
 
-    # 移除"Bearer "前缀
+    # Strip "Bearer " prefix
     key = authorization.replace("Bearer ", "").strip()
     return config_manager.validate_api_key(key)
 
@@ -32,38 +32,38 @@ async def chat_completions(
     request: OpenAIRequest,
     authorization: Optional[str] = Header(None)
 ):
-    """OpenAI兼容的聊天接口"""
+    """OpenAI-compatible chat endpoint"""
 
-    # 验证API Key
+    # Validate API key
     if not validate_api_key(authorization):
         raise HTTPException(status_code=401, detail={"error": {"message": "invalid api key"}})
 
-    # 获取下一个Mimo账号
+    # Get next MiMo account
     account = config_manager.get_next_account()
     if not account:
         raise HTTPException(status_code=503, detail={"error": {"message": "no mimo account"}})
 
-    # 构建查询字符串
+    # Build query string
     query = build_query_from_messages(request.messages)
 
-    # 判断是否启用深度思考
+    # Check if deep thinking is enabled
     thinking = bool(request.reasoning_effort)
 
-    # 创建Mimo客户端
+    # Create MiMo client
     client = MimoClient(account)
 
-    # 流式响应
+    # Streaming response
     if request.stream:
         return StreamingResponse(
             stream_response(client, query, thinking, request.model),
             media_type="text/event-stream"
         )
 
-    # 非流式响应
+    # Non-streaming response
     try:
         content, think_content, usage = await client.call_api(query, thinking)
 
-        # 如果有思考内容，拼接到回复前面
+        # If there's thinking content, prepend it
         full_content = content
         if think_content:
             full_content = f"<think>{think_content}</think>\n{content}"
@@ -94,11 +94,11 @@ async def chat_completions(
 
 
 async def stream_response(client: MimoClient, query: str, thinking: bool, model: str):
-    """流式响应生成器"""
+    """Streaming response generator"""
 
     msg_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
 
-    # 发送初始role delta
+    # Send initial role delta
     yield f"data: {json.dumps(OpenAIResponse(id=msg_id, object='chat.completion.chunk', created=int(time.time()), model=model, choices=[OpenAIChoice(index=0, delta=OpenAIDelta(role='assistant'))]).dict())}\n\n"
 
     buffer = ""
@@ -113,13 +113,13 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
             buffer += content
             text = buffer.replace("\x00", "")
 
-            # 处理<think>标签
+            # Process<think>tags
             while True:
                 if not in_think:
-                    # 查找<think>标签
+                    # Find>tag
                     idx = text.find("<think>")
                     if idx != -1:
-                        # 发送<think>之前的内容
+                        # Send content before<think>
                         if idx > 0:
                             chunk = OpenAIResponse(
                                 id=msg_id,
@@ -134,7 +134,7 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
                         text = text[idx + 7:]
                         continue
 
-                    # 保留最后7个字符以防<think>被截断
+                    # Keep last 7 chars in case<think>is truncated
                     safe = len(text) - 7
                     if safe > 0:
                         chunk = OpenAIResponse(
@@ -149,10 +149,10 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
                     break
 
                 else:
-                    # 查找</think>标签
+                    # Find>tag
                     idx = text.find("</think>")
                     if idx != -1:
-                        # 发送</think>之前的思考内容
+                        # Send reasoning content before</think>
                         if idx > 0:
                             chunk = OpenAIResponse(
                                 id=msg_id,
@@ -167,7 +167,7 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
                         text = text[idx + 8:]
                         continue
 
-                    # 保留最后8个字符以防</think>被截断
+                    # Keep last 8 chars in case</think>is truncated
                     safe = len(text) - 8
                     if safe > 0:
                         chunk = OpenAIResponse(
@@ -183,7 +183,7 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
 
             buffer = text
 
-        # 发送剩余内容
+        # Send remaining content
         if buffer:
             if in_think:
                 chunk = OpenAIResponse(
@@ -203,7 +203,7 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
                 )
             yield f"data: {json.dumps(chunk.dict())}\n\n"
 
-        # 发送结束标记
+        # Send end marker
         final_chunk = OpenAIResponse(
             id=msg_id,
             object="chat.completion.chunk",
@@ -221,13 +221,13 @@ async def stream_response(client: MimoClient, query: str, thinking: bool, model:
 
 @router.get("/api/config")
 async def get_config():
-    """获取配置"""
+    """Get config"""
     return config_manager.get_config()
 
 
 @router.post("/api/config")
 async def update_config(request: Request):
-    """更新配置"""
+    """Update config"""
     try:
         new_config = await request.json()
         config_manager.update_config(new_config)
@@ -238,7 +238,7 @@ async def update_config(request: Request):
 
 @router.post("/api/parse-curl")
 async def parse_curl_command(request: ParseCurlRequest):
-    """解析cURL命令"""
+    """Parse cURL command"""
     account = parse_curl(request.curl)
     if not account:
         raise HTTPException(status_code=400, detail={"error": "parse failed"})
@@ -247,7 +247,7 @@ async def parse_curl_command(request: ParseCurlRequest):
 
 @router.post("/api/test-account")
 async def test_account(request: TestAccountRequest):
-    """测试账号有效性"""
+    """Test account validity"""
     try:
         account = MimoAccount(
             service_token=request.service_token,
