@@ -1,109 +1,154 @@
-# Mimo2API Python版本
+# Mimo2API Python
 
-将小米 Mimo AI 转换为 OpenAI 兼容 API，支持深度思考功能。
+Converts Xiaomi MiMo AI into an OpenAI-compatible API with deep thinking and tool calling support.
 
-## 特性
+## Features
 
-- ✅ **OpenAI 兼容**: 完全兼容 OpenAI API 格式
-- ✅ **深度思考**: 支持 `reasoning_effort` 参数启用深度思考模式
-- ✅ **流式响应**: 支持 SSE 实时流式传输
-- ✅ **账号轮询**: 多账号负载均衡
-- ✅ **Web 管理**: 内置管理界面，方便配置
-- ✅ **异步支持**: 基于 FastAPI 的高性能异步实现
-- ✅ **自动文档**: 自动生成 API 文档（访问 `/docs`）
+- **OpenAI Compatible**: Fully compatible with OpenAI API format
+- **Tool Calling**: OpenAI-compatible function/tool calling via prompt engineering (works with Cursor, Claude Code, Aider)
+- **Deep Thinking**: Supports `reasoning_effort` parameter to enable reasoning mode
+- **Streaming**: SSE real-time streaming responses
+- **Account Rotation**: Multi-account load balancing
+- **Web Admin**: Built-in admin UI for easy configuration
+- **Async**: High-performance async implementation based on FastAPI
+- **Auto Docs**: Auto-generated API docs at `/docs`
 
-## 快速开始
+## Quick Start
 
-### 1. 安装依赖
+### 1. Install dependencies
 
 ```bash
-cd mimo2api_python
 pip install -r requirements.txt
 ```
 
-### 2. 启动服务
+### 2. Fix DNS (required)
+
+MiMo's API domain resolves to `127.0.0.1`. Add a hosts entry:
 
 ```bash
-python main.py
+echo "202.69.4.22 aistudio.xiaomimimo.com" | sudo tee -a /etc/hosts
 ```
 
-服务将在 `http://localhost:8080` 启动。
+### 3. Start the server
 
-### 3. 配置账号
+```bash
+python3 main.py
+```
 
-访问 `http://localhost:8080` 打开管理界面，按照以下步骤配置：
+The server starts at `http://localhost:8080`. Change the port with:
 
-1. **获取凭证**：
-   - 登录 [aistudio.xiaomimimo.com](https://aistudio.xiaomimimo.com)
-   - 打开浏览器开发者工具 → Network
-   - 发送一条消息，找到 `chat` 请求
-   - 右键 → Copy as cURL
-   - 粘贴到管理界面
+```bash
+PORT=3000 python3 main.py
+```
 
-2. **配置 API Keys**：
-   - 在管理界面设置自定义 API Key（逗号分隔多个）
-   - 默认为 `sk-default`
+### 4. Configure an account
 
-## 使用示例
+Open `http://localhost:8080` in your browser and follow these steps:
 
-### 基础调用
+1. **Get credentials**:
+   - Log in to [aistudio.xiaomimimo.com](https://aistudio.xiaomimimo.com)
+   - Open browser developer tools (F12) -> Network tab
+   - Send a message and find the `chat` request
+   - Right-click -> Copy as cURL
+   - Paste it into the admin UI
+
+2. **Configure API Keys**:
+   - Set custom API keys in the admin UI (comma-separated)
+   - Default is `sk-default`
+
+## Usage
+
+### Basic request
 
 ```bash
 curl http://localhost:8080/v1/chat/completions \
   -H "Authorization: Bearer sk-default" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "mimo-v2-flash-studio",
+    "model": "mimo-v2.5-pro",
     "messages": [
-      {"role": "user", "content": "你好"}
+      {"role": "user", "content": "Hello"}
     ]
   }'
 ```
 
-### 启用深度思考
+### Deep thinking
 
 ```bash
 curl http://localhost:8080/v1/chat/completions \
   -H "Authorization: Bearer sk-default" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "mimo-v2-flash-studio",
+    "model": "mimo-v2.5-pro",
     "messages": [
-      {"role": "user", "content": "解释量子纠缠"}
+      {"role": "user", "content": "Explain quantum entanglement"}
     ],
     "reasoning_effort": "medium"
   }'
 ```
 
-### 流式响应
+### Streaming
 
 ```bash
 curl http://localhost:8080/v1/chat/completions \
   -H "Authorization: Bearer sk-default" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "mimo-v2-flash-studio",
+    "model": "mimo-v2.5-pro",
     "messages": [
-      {"role": "user", "content": "写一首诗"}
+      {"role": "user", "content": "Write a poem"}
     ],
     "stream": true
   }'
 ```
 
-## API 端点
+### Tool calling
 
-| 端点 | 方法 | 功能 | 认证 |
-|------|------|------|------|
-| `/v1/chat/completions` | POST | OpenAI 兼容的聊天接口 | Bearer Token |
-| `/api/config` | GET/POST | 获取/更新配置 | 无 |
-| `/api/parse-curl` | POST | 解析 cURL 命令提取凭证 | 无 |
-| `/api/test-account` | POST | 测试 Mimo 账号有效性 | 无 |
-| `/` | GET | 管理界面 | 无 |
-| `/docs` | GET | API 文档（Swagger UI） | 无 |
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Authorization: Bearer sk-default" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "mimo-v2.5-pro",
+    "messages": [
+      {"role": "user", "content": "List files in /tmp using bash"}
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "bash",
+          "description": "Run a bash command",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "The command to execute"
+              }
+            },
+            "required": ["command"]
+          }
+        }
+      }
+    ]
+  }'
+```
 
-## 配置文件
+## API Endpoints
 
-配置文件 `config.json` 会自动创建在运行目录：
+| Endpoint | Method | Description | Auth |
+|----------|--------|-------------|------|
+| `/v1/chat/completions` | POST | OpenAI-compatible chat endpoint | Bearer Token |
+| `/api/config` | GET/POST | Get/update configuration | None |
+| `/api/parse-curl` | POST | Parse cURL command to extract credentials | None |
+| `/api/test-account` | POST | Test MiMo account validity | None |
+| `/` | GET | Admin UI | None |
+| `/docs` | GET | API documentation (Swagger UI) | None |
+
+## Configuration
+
+The `config.json` file is auto-created in the working directory:
 
 ```json
 {
@@ -118,128 +163,141 @@ curl http://localhost:8080/v1/chat/completions \
 }
 ```
 
-## 环境变量
+## Environment Variables
 
-- `PORT`: 服务端口（默认 8080）
+- `PORT`: Server port (default: 8080)
 
 ```bash
-PORT=3000 python main.py
+PORT=3000 python3 main.py
 ```
 
-## 项目结构
+## Using with Cursor / Claude Code / Aider
+
+Point your tool to:
+
+- **Base URL**: `http://localhost:8080/v1`
+- **API Key**: `sk-default`
+- **Model**: `mimo-v2.5-pro`
+
+## Project Structure
 
 ```
-mimo2api_python/
+MiMo2API/
 ├── app/
-│   ├── __init__.py          # 包初始化
-│   ├── config.py            # 配置管理
-│   ├── mimo_client.py       # Mimo API 客户端
-│   ├── models.py            # OpenAI 数据模型
-│   ├── routes.py            # API 路由
-│   └── utils.py             # 工具函数
+│   ├── __init__.py          # Package init
+│   ├── config.py            # Configuration management
+│   ├── mimo_client.py       # MiMo API client
+│   ├── models.py            # OpenAI data models
+│   ├── routes.py            # API routes
+│   └── utils.py             # Utility functions + tool calling
 ├── web/
-│   └── index.html           # 管理界面
-├── main.py                  # 主程序入口
-├── requirements.txt         # 依赖列表
-└── README.md               # 项目文档
+│   └── index.html           # Admin UI
+├── main.py                  # Main entry point
+├── requirements.txt         # Dependencies
+├── test_tool_calling.py     # Tool calling test suite
+└── README.md
 ```
 
-## 技术栈
+## Tech Stack
 
-- **Web 框架**: FastAPI 0.115.5
-- **ASGI 服务器**: Uvicorn 0.32.1
-- **HTTP 客户端**: httpx 0.27.2
-- **数据验证**: Pydantic 2.10.3
+- **Web Framework**: FastAPI 0.115.5
+- **ASGI Server**: Uvicorn 0.32.1
+- **HTTP Client**: httpx 0.27.2
+- **Data Validation**: Pydantic 2.10.3
 
-## 深度思考模式
+## Deep Thinking Mode
 
-通过设置 `reasoning_effort` 参数启用深度思考：
+Enable deep thinking by setting the `reasoning_effort` parameter:
 
-- `low`: 低强度思考
-- `medium`: 中等强度思考
-- `high`: 高强度思考
+- `low`: Light reasoning
+- `medium`: Moderate reasoning
+- `high`: Deep reasoning
 
-**流式响应格式**：
+**Streaming format**:
 ```json
-{"choices":[{"delta":{"reasoning":"思考内容..."}}]}
-{"choices":[{"delta":{"content":"回复内容..."}}]}
+{"choices":[{"delta":{"reasoning":"Thinking content..."}}]}
+{"choices":[{"delta":{"content":"Response content..."}}]}
 ```
 
-**非流式响应格式**：
+**Non-streaming format**:
 ```json
 {
   "choices": [{
     "message": {
-      "content": "<think>思考内容</think>\n回复内容"
+      "content": "<think>Thinking content</think>\nResponse content"
     }
   }]
 }
 ```
 
-## 与 Go 版本的对比
+## Tool Calling
 
-| 特性 | Go 版本 | Python 版本 |
-|------|---------|-------------|
-| 性能 | 更高 | 良好 |
-| 内存占用 | 更低 | 适中 |
-| 部署 | 单一二进制 | 需要 Python 环境 |
-| 开发效率 | 中等 | 更高 |
-| 异步支持 | 标准库 | 原生异步 |
-| API 文档 | 无 | 自动生成 |
-| 类型检查 | 编译时 | 运行时（Pydantic） |
+MiMo has no native tool calling support. This proxy implements it via prompt engineering:
 
-## 开发
+- Tool definitions are injected into the system prompt
+- The model responds with `<tool_call>` XML tags
+- The proxy parses these into OpenAI-compatible `tool_calls` responses
+- `finish_reason` is set to `"tool_calls"` when tools are invoked
+- Multi-turn tool conversations are fully supported
 
-### 安装开发依赖
+**Limitations**: Since tool calling is prompt-engineered, the model may occasionally produce malformed tool calls or ignore tool instructions. `tool_choice="auto"` works best.
+
+## Running Tests
 
 ```bash
-pip install -r requirements.txt
+python3 test_tool_calling.py
 ```
 
-### 运行开发服务器
+15 tests covering: basic tool calls, streaming, multi-turn, tool selection, tool_choice modes, response structure, auth.
+
+## Development
 
 ```bash
-# 自动重载模式
+# Auto-reload mode
 uvicorn main:app --reload --port 8080
 ```
 
-### 查看 API 文档
+### API Documentation
 
-启动服务后访问：
 - Swagger UI: http://localhost:8080/docs
 - ReDoc: http://localhost:8080/redoc
 
-## 故障排除
+## Troubleshooting
 
-### 1. 端口被占用
-
-```bash
-# 更改端口
-PORT=3000 python main.py
-```
-
-### 2. 账号无效
-
-- 在管理界面使用"测试"功能验证账号
-- 重新获取最新的 cURL 命令
-
-### 3. 依赖安装失败
+### 1. Port in use
 
 ```bash
-# 使用国内镜像
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+PORT=3000 python3 main.py
 ```
 
-## 许可证
+### 2. Invalid account
 
-本项目基于原 Go 版本 [mimo2api](https://github.com/leookun/mimo2api) 重写。
+- Use the "Test" button in the admin UI to verify your account
+- Re-capture the latest cURL command from the browser
 
-## 贡献
+### 3. DNS resolution error (connection refused)
 
-欢迎提交 Issue 和 Pull Request！
+Add the hosts entry:
+```bash
+echo "202.69.4.22 aistudio.xiaomimimo.com" | sudo tee -a /etc/hosts
+```
 
-## 相关链接
+### 4. Dependencies install failed
 
-- [原 Go 版本](https://github.com/leookun/mimo2api)
-- [小米 Mimo AI](https://aistudio.xiaomimimo.com)
-- [FastAPI 文档](https://fastapi.tiangolo.com)
+```bash
+pip install -r requirements.txt --break-system-packages
+```
+
+## License
+
+Based on the original Go version [mimo2api](https://github.com/leookun/mimo2api).
+
+## Contributing
+
+Issues and pull requests are welcome!
+
+## Links
+
+- [Original Go version](https://github.com/leookun/mimo2api)
+- [Xiaomi MiMo AI](https://aistudio.xiaomimimo.com)
+- [FastAPI Documentation](https://fastapi.tiangolo.com)
